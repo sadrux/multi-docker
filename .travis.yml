@@ -1,14 +1,18 @@
 sudo: required
 services:
+  # install docker
   - docker
 
 before_install:
+  #build react Dockerfile.dev image to run the tests
   - docker build -t opmftw/react-test -f ./client/Dockerfile.dev ./client
 
 script:
+  #start the container to run the react tests
   - docker run opmftw/react-test npm test -- --coverage
 
 after_success:
+  # build the production images
   - docker build -t opmftw/multi-client ./client
   - docker build -t opmftw/multi-nginx ./nginx
   - docker build -t opmftw/multi-server ./server
@@ -20,3 +24,16 @@ after_success:
   - docker push opmftw/multi-nginx
   - docker push opmftw/multi-server
   - docker push opmftw/multi-worker
+
+deploy:
+  provider: elasticbeanstalk
+  region: eu-central-1
+  app: multi-docker
+  env: MultiDocker-env
+  bucket_name: elasticbeanstalk-eu-central-1-674587793989
+  bucket_path: docker-multi
+  on:
+    branch: master
+  access_key_id: $AWS_ACCESS_KEY
+  secret_access_key:
+    secure: $AWS_SECRET_KEY
